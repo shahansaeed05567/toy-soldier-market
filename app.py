@@ -10,7 +10,6 @@ app = Flask(__name__)
 MIN_PRICE = 0.25
 MAX_PRICE = 5.00
 
-# Use Render's persistent disk when available.
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/var/data"))
 
 try:
@@ -60,7 +59,6 @@ def initialize_db():
             (json.dumps(DEFAULT_SETTINGS),),
         )
 
-        # Update previously saved prices that exceed the new price limit.
         row = db.execute(
             "SELECT settings FROM shared_settings WHERE id = 1"
         ).fetchone()
@@ -72,31 +70,22 @@ def initialize_db():
 
                 for offer in saved.get("offers", []):
                     price = offer.get("price")
-
                     if (
                         isinstance(price, (int, float))
                         and not isinstance(price, bool)
-                        and (price < MIN_PRICE or price > MAX_PRICE)
+                        and not MIN_PRICE <= price <= MAX_PRICE
                     ):
                         offer["price"] = 2.50
                         changed = True
 
                 if changed:
                     db.execute(
-                        """
-                        UPDATE shared_settings
-                        SET settings = ?
-                        WHERE id = 1
-                        """,
+                        "UPDATE shared_settings SET settings = ? WHERE id = 1",
                         (json.dumps(saved),),
                     )
             except (ValueError, TypeError, AttributeError):
                 db.execute(
-                    """
-                    UPDATE shared_settings
-                    SET settings = ?
-                    WHERE id = 1
-                    """,
+                    "UPDATE shared_settings SET settings = ? WHERE id = 1",
                     (json.dumps(DEFAULT_SETTINGS),),
                 )
 
@@ -125,15 +114,11 @@ def validate_settings(data):
     target_quantity = data.get("targetQuantity")
     offers = data.get("offers")
 
+    # Weights only need to be valid numeric values.
+    # They do not need to total 100 or stay between 0 and 100.
     for weight in (price_weight, quality_weight):
-        if (
-            isinstance(weight, bool)
-            or not isinstance(weight, (int, float))
-            or not 0 <= weight <= 100
-        ):
-            raise ValueError("Weights must be between 0 and 100.")
-
-    # No requirement for price and quality weights to add up to 100%.
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)):
+            raise ValueError("Enter valid numeric weights.")
 
     if (
         isinstance(target_quantity, bool)
@@ -256,4 +241,3 @@ def health_check():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
-
