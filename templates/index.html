@@ -48,6 +48,7 @@ h2{margin:0 0 12px;font-size:clamp(21px,2.5vw,28px)}
 .quality-setting{--setting-border:#d9caff;--setting-bg:#f0eaff;--setting-color:#7140c1}
 .target-setting{--setting-border:#b5eed0;--setting-bg:#e5faee;--setting-color:#148143}
 .info-setting{display:flex;align-items:center;background:#e9f3ff;border-color:#d8eaff;color:#1759a5}
+.note{font-size:14px;color:#47658e;margin:8px 0}
 .table-wrap{overflow-x:auto;border:1px solid #cfe1f8;border-radius:12px}
 table{width:100%;min-width:780px;border-collapse:collapse}
 thead{background:linear-gradient(90deg,#154a8b,#1e5ba5);color:white}
@@ -63,7 +64,9 @@ td input{width:100%;min-width:75px;padding:7px 9px;border:1px solid #c2d5ed;bord
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
 button{border:0;border-radius:10px;padding:13px 19px;font-size:15px;font-weight:bold;cursor:pointer;transition:transform .15s,filter .15s}
 button:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.save{background:linear-gradient(110deg,#159447,#26ad62);color:white;box-shadow:0 4px 10px #15944725}
 .recalculate{background:linear-gradient(110deg,#0866ed,#1677ff);color:white;box-shadow:0 4px 10px #0866ed25}
+.reset{background:#899bb2;color:white}
 .status{display:none;padding:12px 15px;border-radius:10px;margin-top:12px;font-size:14px}
 .success{display:block;background:#e1f9ec;color:#08763e;border:1px solid #9fe6bf}
 .error{display:block;background:#ffeded;color:#a11d2d;border:1px solid #ffc6cc}
@@ -77,6 +80,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
 }
 </style>
 </head>
+
 <body>
 <header>
   <h1>🎖️ Toy Soldier Market</h1>
@@ -86,7 +90,11 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
 
 <main>
 <section>
-  <h2 class="section-title"><span class="section-icon">👥</span> Seller and Buyer Directory</h2>
+  <h2 class="section-title">
+    <span class="section-icon">👥</span>
+    Seller and Buyer Directory
+  </h2>
+
   <div class="groups">
     <div class="group g1">
       <h3>♟ Group 1</h3>
@@ -98,6 +106,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
         <li>Ahmaed Thomas</li>
       </ul>
     </div>
+
     <div class="group g2">
       <h3>♟ Group 2</h3>
       <ul>
@@ -108,6 +117,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
         <li>Kevin Yu</li>
       </ul>
     </div>
+
     <div class="group g3">
       <h3>♟ Group 3</h3>
       <ul>
@@ -118,6 +128,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
         <li>Zach Mushorn</li>
       </ul>
     </div>
+
     <div class="group g4">
       <h3>📦 Group 4 (Buyers)</h3>
       <ul>
@@ -128,6 +139,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
         <li>Dorant Esty</li>
       </ul>
     </div>
+
     <div class="group g5">
       <h3>👥 Group 5</h3>
       <ul>
@@ -144,8 +156,16 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
 <section>
   <div class="strategy-head">
     <div>
-      <h2 class="section-title"><span class="section-icon">🎯</span> Buyer Strategy and Quality Comparison</h2>
-      <p>Enter each seller's price, quality rating, and available stock. Scores combine affordability and quality. Recommended quantities are distributed according to score without exceeding available stock.</p>
+      <h2 class="section-title">
+        <span class="section-icon">🎯</span>
+        Buyer Strategy and Quality Comparison
+      </h2>
+      <p>
+        Enter each seller's price ($0.25–$5.00), quality rating, and available
+        stock. The seller's cost is $0.25 per soldier; the maximum selling
+        price is $5.00. Scores combine affordability and quality, and
+        recommendations never exceed available stock.
+      </p>
     </div>
   </div>
 
@@ -154,14 +174,17 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
       <label for="priceWeight">💲 Price Weight (%)</label>
       <input id="priceWeight" type="number" min="0" max="100" step="5" value="50">
     </div>
+
     <div class="setting quality-setting">
       <label for="qualityWeight">⭐ Quality Weight (%)</label>
       <input id="qualityWeight" type="number" min="0" max="100" step="5" value="50">
     </div>
+
     <div class="setting target-setting">
       <label for="targetQuantity">📦 Target Quantity</label>
       <input id="targetQuantity" type="number" min="0" step="1" value="10">
     </div>
+
     <div class="setting info-setting">
       <span>ℹ️ Price Weight + Quality Weight must equal 100%.</span>
     </div>
@@ -179,34 +202,38 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
           <th>🛒 Recommended Quantity</th>
         </tr>
       </thead>
+
       <tbody id="offerRows">
         <tr data-group="1">
           <td><span class="group-tag tag1">Group 1</span></td>
-          <td><input class="price" type="number" min="0" step=".01" value="10"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="8"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
           <td><span class="quantity">—</span></td>
         </tr>
+
         <tr data-group="2">
           <td><span class="group-tag tag2">Group 2</span></td>
-          <td><input class="price" type="number" min="0" step=".01" value="10"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="7"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
           <td><span class="quantity">—</span></td>
         </tr>
+
         <tr data-group="3">
           <td><span class="group-tag tag3">Group 3</span></td>
-          <td><input class="price" type="number" min="0" step=".01" value="10"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="6"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
           <td><span class="quantity">—</span></td>
         </tr>
+
         <tr data-group="5">
           <td><span class="group-tag tag5">Group 5</span></td>
-          <td><input class="price" type="number" min="0" step=".01" value="10"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="5"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
@@ -217,21 +244,28 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
   </div>
 
   <div class="actions">
+    <button class="save" id="saveButton">💾 Save Changes</button>
     <button class="recalculate" id="calculateButton">🔄 Recalculate Scores</button>
+    <button class="reset" id="resetButton">↩ Reset Demo Settings</button>
   </div>
 
   <div id="saveStatus" class="status" role="status" aria-live="polite"></div>
   <div id="calculationStatus" class="status" role="status" aria-live="polite"></div>
 
   <div class="footer-note">
-    ℹ️ Changes save automatically to the server after you finish editing. Other users can refresh this page to see the latest saved settings. These recommendations do not place purchases or update the market ledger.
+    ℹ️ Offer prices must be between $0.25 and $5.00. Shared settings are
+    stored on the server. After someone saves changes, other users can
+    refresh this page to see them. These recommendations do not place
+    purchases or update the market ledger.
   </div>
 </section>
 </main>
 
 <script>
 const API_URL = "/api/shared-settings";
-const rows = () => Array.from(document.querySelectorAll("#offerRows tr"));
+
+const rows = () =>
+  Array.from(document.querySelectorAll("#offerRows tr"));
 
 function showMessage(id, text, isError = false) {
   const el = document.getElementById(id);
@@ -246,32 +280,37 @@ function hideMessage(id) {
 
 function readSettings() {
   return {
-    priceWeight: Number(document.getElementById("priceWeight").value),
-    qualityWeight: Number(document.getElementById("qualityWeight").value),
-    targetQuantity: Number(document.getElementById("targetQuantity").value),
+    priceWeight: document.getElementById("priceWeight").value,
+    qualityWeight: document.getElementById("qualityWeight").value,
+    targetQuantity: document.getElementById("targetQuantity").value,
     offers: rows().map(row => ({
       group: row.dataset.group,
-      price: Number(row.querySelector(".price").value),
-      quality: Number(row.querySelector(".quality").value),
-      stock: Number(row.querySelector(".stock").value)
+      price: row.querySelector(".price").value,
+      quality: row.querySelector(".quality").value,
+      stock: row.querySelector(".stock").value
     }))
   };
 }
 
 function applySettings(settings) {
-  document.getElementById("priceWeight").value = settings.priceWeight ?? 50;
-  document.getElementById("qualityWeight").value = settings.qualityWeight ?? 50;
-  document.getElementById("targetQuantity").value = settings.targetQuantity ?? 10;
+  document.getElementById("priceWeight").value =
+    settings.priceWeight ?? 50;
+
+  document.getElementById("qualityWeight").value =
+    settings.qualityWeight ?? 50;
+
+  document.getElementById("targetQuantity").value =
+    settings.targetQuantity ?? 10;
 
   const savedOffers = new Map(
-    (settings.offers || []).map(offer => [String(offer.group), offer])
+    (settings.offers || []).map(o => [String(o.group), o])
   );
 
   rows().forEach(row => {
     const offer = savedOffers.get(String(row.dataset.group));
     if (!offer) return;
 
-    row.querySelector(".price").value = offer.price ?? 10;
+    row.querySelector(".price").value = offer.price ?? 1;
     row.querySelector(".quality").value = offer.quality ?? 5;
     row.querySelector(".stock").value = offer.stock ?? 10;
   });
@@ -280,21 +319,27 @@ function applySettings(settings) {
 async function loadSharedSettings() {
   try {
     const response = await fetch(API_URL, { cache: "no-store" });
-    if (!response.ok) throw new Error("HTTP " + response.status);
 
-    const settings = await response.json();
-    applySettings(settings);
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    applySettings(await response.json());
     calculate();
-
-    showMessage("saveStatus", "✓ Shared settings loaded from the server.");
-  } catch (error) {
-    try {
-      calculate();
-    } catch (_) {}
 
     showMessage(
       "saveStatus",
-      "Could not load shared settings. Check that the shared-settings API is installed in app.py. " + error.message,
+      "✓ Shared settings loaded from the server."
+    );
+  } catch (error) {
+    try {
+      calculate();
+    } catch (e) {}
+
+    showMessage(
+      "saveStatus",
+      "Could not load shared settings. The shared-settings API must be installed in app.py. " +
+        error.message,
       true
     );
   }
@@ -331,83 +376,109 @@ function calculate() {
   const target = Number(document.getElementById("targetQuantity").value);
 
   if (
-    !Number.isFinite(pw) || !Number.isFinite(qw) ||
-    pw < 0 || pw > 100 || qw < 0 || qw > 100 ||
+    !Number.isFinite(pw) ||
+    !Number.isFinite(qw) ||
+    pw < 0 ||
+    pw > 100 ||
+    qw < 0 ||
+    qw > 100 ||
     Math.abs(pw + qw - 100) > 0.000001
   ) {
-    throw new Error("Price Weight and Quality Weight must add up to 100%.");
+    throw Error(
+      "Price Weight and Quality Weight must add up to 100%."
+    );
   }
 
   if (!Number.isInteger(target) || target < 0) {
-    throw new Error("Target Quantity must be a whole number of zero or more.");
+    throw Error(
+      "Target Quantity must be a whole number of zero or more."
+    );
   }
 
   const offers = rows().map((row, index) => {
-    const priceValue = row.querySelector(".price").value;
-    const qualityValue = row.querySelector(".quality").value;
-    const stockValue = row.querySelector(".stock").value;
+    const p = row.querySelector(".price").value;
+    const q = row.querySelector(".quality").value;
+    const s = row.querySelector(".stock").value;
 
-    const price = Number(priceValue);
-    const quality = Number(qualityValue);
-    const stock = Number(stockValue);
+    const price = Number(p);
+    const quality = Number(q);
+    const stock = Number(s);
 
     if (
-      priceValue === "" || qualityValue === "" || stockValue === "" ||
-      !Number.isFinite(price) || price < 0 ||
-      !Number.isFinite(quality) || quality < 1 || quality > 10 ||
-      !Number.isInteger(stock) || stock < 0
+      p === "" ||
+      q === "" ||
+      s === "" ||
+      !Number.isFinite(price) ||
+      price < 0.25 ||
+      price > 5 ||
+      !Number.isFinite(quality) ||
+      quality < 1 ||
+      quality > 10 ||
+      !Number.isInteger(stock) ||
+      stock < 0
     ) {
-      throw new Error(
-        "Check prices, quality ratings from 1–10, and whole-number stock amounts."
+      throw Error(
+        "Prices must be $0.25–$5.00. Quality must be 1–10, and stock must be a whole number of zero or more."
       );
     }
 
-    return { row, index, price, quality, stock, score: 0, quantity: 0 };
+    return {
+      row,
+      index,
+      price,
+      quality,
+      stock,
+      score: 0,
+      quantity: 0
+    };
   });
 
   const positivePrices = offers
-    .map(offer => offer.price)
-    .filter(price => price > 0);
+    .map(o => o.price)
+    .filter(p => p >= 0.25 && p <= 5);
 
-  const cheapest = positivePrices.length ? Math.min(...positivePrices) : 0;
+  const cheapest = positivePrices.length
+    ? Math.min(...positivePrices)
+    : 0;
 
-  offers.forEach(offer => {
+  offers.forEach(o => {
     let affordability;
 
-    if (offer.price === 0) {
-      affordability = 100;
+    if (o.price < 0.25 || o.price > 5) {
+      affordability = 0;
     } else if (cheapest === 0) {
       affordability = 0;
     } else {
-      affordability = Math.min(100, cheapest / offer.price * 100);
+      affordability = Math.min(100, cheapest / o.price * 100);
     }
 
-    offer.score =
+    o.score =
       affordability * (pw / 100) +
-      (offer.quality * 10) * (qw / 100);
+      (o.quality * 10) * (qw / 100);
   });
 
   let remaining = target;
 
   while (remaining > 0) {
-    const active = offers.filter(offer => offer.quantity < offer.stock);
+    const active = offers.filter(o => o.quantity < o.stock);
+
     if (!active.length) break;
 
     let best = null;
     let bestPriority = -Infinity;
 
-    active.forEach(offer => {
-      const priority = Math.max(offer.score, 0.01) ** 2 /
-        (offer.quantity + 1);
+    active.forEach(o => {
+      const priority =
+        Math.max(o.score, 0.01) ** 2 / (o.quantity + 1);
 
       if (
         priority > bestPriority + 1e-12 ||
         (
           Math.abs(priority - bestPriority) < 1e-12 &&
-          (!best || offer.index < best.index)
+          (!best || o.index < best.index)
         )
       ) {
-        best = offer;
+        best = o;
         bestPriority = priority;
       }
     });
@@ -418,141 +489,84 @@ function calculate() {
     remaining--;
   }
 
-  offers.forEach(offer => {
-    offer.row.querySelector(".score").textContent = offer.score.toFixed(2);
-    offer.row.querySelector(".quantity").textContent = offer.quantity;
+  offers.forEach(o => {
+    o.row.querySelector(".score").textContent =
+      o.score.toFixed(2);
+
+    o.row.querySelector(".quantity").textContent =
+      o.quantity;
   });
 
   showMessage(
     "calculationStatus",
-    "✓ Scores and recommendations updated. " + remaining +
-    " requested units could not be allocated because of available stock."
+    "✓ Scores and recommendations updated. " +
+      remaining +
+      " requested units could not be allocated because of available stock."
   );
 }
 
-document.getElementById("calculateButton").addEventListener("click", () => {
-  try {
-    calculate();
-  } catch (error) {
-    showMessage("calculationStatus", error.message, true);
-  }
-});
+document.getElementById("saveButton").addEventListener(
+  "click",
+  async () => {
+    try {
+      calculate();
+      await saveSharedSettings();
 
-let autosaveTimer = null;
-let saveInProgress = false;
-let saveQueued = false;
-
-function settingsAreValid() {
-  const priceWeightField = document.getElementById("priceWeight");
-  const qualityWeightField = document.getElementById("qualityWeight");
-  const targetField = document.getElementById("targetQuantity");
-
-  const pw = Number(priceWeightField.value);
-  const qw = Number(qualityWeightField.value);
-  const target = Number(targetField.value);
-
-  if (
-    priceWeightField.value === "" ||
-    qualityWeightField.value === "" ||
-    targetField.value === "" ||
-    !Number.isInteger(target) || target < 0 ||
-    !Number.isFinite(pw) || !Number.isFinite(qw) ||
-    pw < 0 || pw > 100 || qw < 0 || qw > 100 ||
-    Math.abs(pw + qw - 100) > 0.000001
-  ) {
-    return false;
-  }
-
-  return rows().every(row => {
-    const price = row.querySelector(".price").value;
-    const quality = row.querySelector(".quality").value;
-    const stock = row.querySelector(".stock").value;
-
-    return price !== "" && Number.isFinite(Number(price)) &&
-      Number(price) >= 0 &&
-      quality !== "" && Number.isFinite(Number(quality)) &&
-      Number(quality) >= 1 && Number(quality) <= 10 &&
-      stock !== "" && Number.isInteger(Number(stock)) &&
-      Number(stock) >= 0;
-  });
-}
-
-async function autosaveSettings() {
-  if (!settingsAreValid()) {
-    showMessage(
-      "saveStatus",
-      "Finish entering valid numbers to save automatically.",
-      true
-    );
-    return;
-  }
-
-  if (saveInProgress) {
-    saveQueued = true;
-    return;
-  }
-
-  saveInProgress = true;
-
-  try {
-    calculate();
-    await saveSharedSettings(readSettings());
-
-    showMessage(
-      "saveStatus",
-      "✓ Changes saved automatically for everyone."
-    );
-  } catch (error) {
-    showMessage(
-      "saveStatus",
-      "Could not save changes. " + error.message,
-      true
-    );
-  } finally {
-    saveInProgress = false;
-
-    if (saveQueued) {
-      saveQueued = false;
-      autosaveSettings();
+      showMessage(
+        "saveStatus",
+        "✓ Changes saved to the server. Other users will see them when they refresh."
+      );
+    } catch (error) {
+      showMessage("saveStatus", error.message, true);
     }
   }
-}
-
-function queueAutosave() {
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(autosaveSettings, 600);
-}
-
-document.getElementById("priceWeight").addEventListener("input", event => {
-  const value = event.target.value;
-
-  if (value !== "" && Number(value) >= 0 && Number(value) <= 100) {
-    document.getElementById("qualityWeight").value = 100 - Number(value);
-  }
-
-  queueAutosave();
-});
-
-document.getElementById("qualityWeight").addEventListener("input", event => {
-  const value = event.target.value;
-
-  if (value !== "" && Number(value) >= 0 && Number(value) <= 100) {
-    document.getElementById("priceWeight").value = 100 - Number(value);
-  }
-
-  queueAutosave();
-});
-
-document.getElementById("targetQuantity").addEventListener(
-  "input",
-  queueAutosave
 );
 
-rows().forEach(row => {
-  row.querySelectorAll(".price, .quality, .stock").forEach(input => {
-    input.addEventListener("input", queueAutosave);
-  });
-});
+document.getElementById("calculateButton").addEventListener(
+  "click",
+  () => {
+    try {
+      calculate();
+    } catch (error) {
+      showMessage("calculationStatus", error.message, true);
+    }
+  }
+);
+
+document.getElementById("resetButton").addEventListener(
+  "click",
+  async () => {
+    const defaults = {
+      priceWeight: 50,
+      qualityWeight: 50,
+      targetQuantity: 10,
+      offers: [
+        { group: "1", price: 1, quality: 8, stock: 10 },
+        { group: "2", price: 1, quality: 7, stock: 10 },
+        { group: "3", price: 1, quality: 6, stock: 10 },
+        { group: "5", price: 1, quality: 5, stock: 10 }
+      ]
+    };
+
+    try {
+      applySettings(defaults);
+      calculate();
+      await saveSharedSettings(readSettings());
+
+      showMessage(
+        "saveStatus",
+        "✓ Demo settings reset and saved to the server for everyone."
+      );
+    } catch (error) {
+      showMessage(
+        "saveStatus",
+        "Reset applied on this page, but could not be saved for everyone. " +
+          error.message,
+        true
+      );
+    }
+  }
+);
 
 loadSharedSettings();
 </script>
