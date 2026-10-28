@@ -1,3 +1,4 @@
+
 import os
 import json
 import sqlite3
@@ -6,22 +7,22 @@ from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
 
-# Persistent storage on Render.
+MIN_PRICE = 0.25
+MAX_PRICE = 5.00
+
+# Use Render's persistent disk when available.
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/var/data"))
 
 try:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     test_file = DATA_DIR / ".write_test"
-    test_file.touch(exist_ok=True)
-    test_file.unlink(missing_ok=True)
+    test_file.write_text("test")
+    test_file.unlink()
 except OSError:
     DATA_DIR = Path(app.root_path) / "instance"
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DB_PATH = DATA_DIR / "buyer_shared.db"
-
-MIN_PRICE = 0.25
-MAX_PRICE = 5.00
 
 DEFAULT_SETTINGS = {
     "priceWeight": 50,
@@ -34,8 +35,6 @@ DEFAULT_SETTINGS = {
         {"group": "5", "price": 2.50, "quality": 5, "stock": 10},
     ],
 }
-
-EXPECTED_GROUPS = {"1", "2", "3", "5"}
 
 
 def connect_db():
@@ -53,10 +52,53 @@ def initialize_db():
             )
         """)
 
-        db.execute("""
+        db.execute(
+            """
             INSERT OR IGNORE INTO shared_settings (id, settings)
             VALUES (1, ?)
-        """, (json.dumps(DEFAULT_SETTINGS),))
+            """,
+            (json.dumps(DEFAULT_SETTINGS),),
+        )
+
+        # Update previously saved prices that exceed the new price limit.
+        row = db.execute(
+            "SELECT settings FROM shared_settings WHERE id = 1"
+        ).fetchone()
+
+        if row:
+            try:
+                saved = json.loads(row["settings"])
+                changed = False
+
+                for offer in saved.get("offers", []):
+                    price = offer.get("price")
+
+                    if (
+                        isinstance(price, (int, float))
+                        and not isinstance(price, bool)
+                        and (price < MIN_PRICE or price > MAX_PRICE)
+                    ):
+                        offer["price"] = 2.50
+                        changed = True
+
+                if changed:
+                    db.execute(
+                        """
+                        UPDATE shared_settings
+                        SET settings = ?
+                        WHERE id = 1
+                        """,
+                        (json.dumps(saved),),
+                    )
+            except (ValueError, TypeError, AttributeError):
+                db.execute(
+                    """
+                    UPDATE shared_settings
+                    SET settings = ?
+                    WHERE id = 1
+                    """,
+                    (json.dumps(DEFAULT_SETTINGS),),
+                )
 
 
 def read_settings():
@@ -65,120 +107,100 @@ def read_settings():
             "SELECT settings FROM shared_settings WHERE id = 1"
         ).fetchone()
 
-    if row is None:
-        return DEFAULT_SETTINGS.copy()
+    if not row:
+        return DEFAULT_SETTINGS
 
     try:
         return json.loads(row["settings"])
-    except (json.JSONDecodeError, TypeError):
-        return DEFAULT_SETTINGS.copy()
+    except (ValueError, TypeError):
+        return DEFAULT_SETTINGS
 
 
 def validate_settings(data):
     if not isinstance(data, dict):
-        raise ValueError("Settings must be a JSON object.")
+        raise ValueError("Invalid settings.")
 
-    pw = data.get("priceWeight")
-    qw = data.get("qualityWeight")
-    target = data.get("targetQuantity")
+    price_weight = data.get("priceWeight")
+    quality_weight = data.get("qualityWeight")
+    target_quantity = data.get("targetQuantity")
     offers = data.get("offers")
 
-    # Validate the price and quality weights.
-    if (
-        isinstance(pw, bool)
-        or not isinstance(pw, (int, float))
-        or isinstance(qw, bool)
-        or not isinstance(qw, (int, float))
-        or not 0 <= pw <= 100
-        or not 0 <= qw <= 100
-        or abs(pw + qw - 100) > 0.000001
-    ):
-        raise ValueError(
-            "Price and quality weights must add up to 100%."
-        )
+    for weight in (price_weight, quality_weight):
+        if (
+            isinstance(weight, bool)
+            or not isinstance(weight, (int, float))
+            or not 0 <= weight <= 100
+        ):
+            raise ValueError("Weights must be between 0 and 100.")
 
-    # Validate target quantity.
-    if (
-        isinstance(target, bool)
-        or not isinstance(target, int)
-        or target < 0
-    ):
-        raise ValueError(
-            "Target quantity must be a whole number of zero or more."
-        )
+    # No requirement for price and quality weights to add up to 100%.
 
-    # Require one offer for each seller group.
+    if (
+        isinstance(target_quantity, bool)
+        or not isinstance(target_quantity, int)
+        or target_quantity < 0
+    ):
+        raise ValueError("Target quantity must be a whole number of zero or more.")
+
+    expected_groups = {"1", "2", "3", "5"}
+
     if not isinstance(offers, list) or len(offers) != 4:
         raise ValueError("Exactly four seller offers are required.")
 
-    cleaned = []
-    seen_groups = set()
+    cleaned_offers = []
 
     for offer in offers:
         if not isinstance(offer, dict):
-            raise ValueError("Each offer must be an object.")
+            raise ValueError("Invalid seller offer.")
 
         group = str(offer.get("group"))
 
-        if group not in EXPECTED_GROUPS:
+        if group not in expected_groups:
             raise ValueError("Unexpected seller group.")
-
-        if group in seen_groups:
-            raise ValueError("Each seller group must appear only once.")
-
-        seen_groups.add(group)
 
         price = offer.get("price")
         quality = offer.get("quality")
         stock = offer.get("stock")
 
-        # Seller price must be between $0.25 and $5.00.
         if (
             isinstance(price, bool)
             or not isinstance(price, (int, float))
             or not MIN_PRICE <= price <= MAX_PRICE
         ):
             raise ValueError(
-                "Offer prices must be between $0.25 and $5.00."
+                "Maximum price is $5.00 per soldier. "
+                "Prices must be between $0.25 and $5.00."
             )
 
-        # Quality must be from 1 to 10.
         if (
             isinstance(quality, bool)
             or not isinstance(quality, (int, float))
             or not 1 <= quality <= 10
         ):
-            raise ValueError(
-                "Quality ratings must be from 1 to 10."
-            )
+            raise ValueError("Quality ratings must be between 1 and 10.")
 
-        # Stock must be a nonnegative whole number.
         if (
             isinstance(stock, bool)
             or not isinstance(stock, int)
             or stock < 0
         ):
-            raise ValueError(
-                "Stock must be a whole number of zero or more."
-            )
+            raise ValueError("Stock must be a whole number of zero or more.")
 
-        cleaned.append({
+        cleaned_offers.append({
             "group": group,
             "price": round(float(price), 2),
             "quality": quality,
             "stock": stock,
         })
 
-    if seen_groups != EXPECTED_GROUPS:
-        raise ValueError(
-            "Groups 1, 2, 3, and 5 must each have one offer."
-        )
+    if {offer["group"] for offer in cleaned_offers} != expected_groups:
+        raise ValueError("Each seller group must appear exactly once.")
 
     return {
-        "priceWeight": pw,
-        "qualityWeight": qw,
-        "targetQuantity": target,
-        "offers": cleaned,
+        "priceWeight": price_weight,
+        "qualityWeight": quality_weight,
+        "targetQuantity": target_quantity,
+        "offers": cleaned_offers,
     }
 
 
@@ -216,23 +238,22 @@ def save_shared_settings():
             (json.dumps(settings),),
         )
 
-    response = jsonify({
+    return jsonify({
         "message": "Shared settings saved successfully.",
         "settings": settings,
     })
-    response.headers["Cache-Control"] = "no-store"
-    return response
 
 
 @app.route("/api/health", methods=["GET"])
-def health():
+def health_check():
     return jsonify({
         "status": "ok",
-        "min_price": MIN_PRICE,
-        "max_price": MAX_PRICE,
+        "minimumPrice": MIN_PRICE,
+        "maximumPrice": MAX_PRICE,
     })
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
+
