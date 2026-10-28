@@ -186,7 +186,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
     </div>
 
     <div class="setting info-setting">
-      <span>ℹ️ Price Weight + Quality Weight must equal 100%.</span>
+      <span>ℹ️ Price and quality weights are relative. They do not need to add up to 100%.</span>
     </div>
   </div>
 
@@ -206,7 +206,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
       <tbody id="offerRows">
         <tr data-group="1">
           <td><span class="group-tag tag1">Group 1</span></td>
-          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step="0.01" value="2.50"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="8"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
@@ -215,7 +215,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
 
         <tr data-group="2">
           <td><span class="group-tag tag2">Group 2</span></td>
-          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step="0.01" value="2.50"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="7"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
@@ -224,7 +224,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
 
         <tr data-group="3">
           <td><span class="group-tag tag3">Group 3</span></td>
-          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step="0.01" value="2.50"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="6"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
@@ -233,7 +233,7 @@ button:hover{filter:brightness(1.05);transform:translateY(-1px)}
 
         <tr data-group="5">
           <td><span class="group-tag tag5">Group 5</span></td>
-          <td><input class="price" type="number" min="0.25" max="5" step=".01" value="1"></td>
+          <td><input class="price" type="number" min="0.25" max="5" step="0.01" value="2.50"></td>
           <td><input class="quality" type="number" min="1" max="10" step="1" value="5"></td>
           <td><input class="stock" type="number" min="0" step="1" value="10"></td>
           <td><span class="score">—</span></td>
@@ -280,14 +280,14 @@ function hideMessage(id) {
 
 function readSettings() {
   return {
-    priceWeight: document.getElementById("priceWeight").value,
-    qualityWeight: document.getElementById("qualityWeight").value,
-    targetQuantity: document.getElementById("targetQuantity").value,
+    priceWeight: Number(document.getElementById("priceWeight").value),
+    qualityWeight: Number(document.getElementById("qualityWeight").value),
+    targetQuantity: Number(document.getElementById("targetQuantity").value),
     offers: rows().map(row => ({
       group: row.dataset.group,
-      price: row.querySelector(".price").value,
-      quality: row.querySelector(".quality").value,
-      stock: row.querySelector(".stock").value
+      price: Number(row.querySelector(".price").value),
+      quality: Number(row.querySelector(".quality").value),
+      stock: Number(row.querySelector(".stock").value)
     }))
   };
 }
@@ -310,7 +310,7 @@ function applySettings(settings) {
     const offer = savedOffers.get(String(row.dataset.group));
     if (!offer) return;
 
-    row.querySelector(".price").value = offer.price ?? 1;
+    row.querySelector(".price").value = offer.price ?? 2.50;
     row.querySelector(".quality").value = offer.quality ?? 5;
     row.querySelector(".stock").value = offer.stock ?? 10;
   });
@@ -338,7 +338,7 @@ async function loadSharedSettings() {
 
     showMessage(
       "saveStatus",
-      "Could not load shared settings. The shared-settings API must be installed in app.py. " +
+      "Could not load shared settings. Please check the server connection. " +
         error.message,
       true
     );
@@ -376,38 +376,38 @@ function calculate() {
   const target = Number(document.getElementById("targetQuantity").value);
 
   if (
+    document.getElementById("priceWeight").value === "" ||
+    document.getElementById("qualityWeight").value === "" ||
     !Number.isFinite(pw) ||
     !Number.isFinite(qw) ||
     pw < 0 ||
-    pw > 100 ||
-    qw < 0 ||
-    qw > 100 ||
-    Math.abs(pw + qw - 100) > 0.000001
+    qw < 0
   ) {
-    throw Error(
-      "Price Weight and Quality Weight must add up to 100%."
-    );
+    throw Error("Enter valid nonnegative price and quality weights.");
   }
 
+  // Weights represent relative importance and need not total 100.
+  const weightTotal = pw + qw;
+  const effectivePriceWeight = weightTotal === 0 ? 0.5 : pw / weightTotal;
+  const effectiveQualityWeight = weightTotal === 0 ? 0.5 : qw / weightTotal;
+
   if (!Number.isInteger(target) || target < 0) {
-    throw Error(
-      "Target Quantity must be a whole number of zero or more."
-    );
+    throw Error("Target Quantity must be a whole number of zero or more.");
   }
 
   const offers = rows().map((row, index) => {
-    const p = row.querySelector(".price").value;
-    const q = row.querySelector(".quality").value;
-    const s = row.querySelector(".stock").value;
+    const priceInput = row.querySelector(".price").value;
+    const qualityInput = row.querySelector(".quality").value;
+    const stockInput = row.querySelector(".stock").value;
 
-    const price = Number(p);
-    const quality = Number(q);
-    const stock = Number(s);
+    const price = Number(priceInput);
+    const quality = Number(qualityInput);
+    const stock = Number(stockInput);
 
     if (
-      p === "" ||
-      q === "" ||
-      s === "" ||
+      priceInput === "" ||
+      qualityInput === "" ||
+      stockInput === "" ||
       !Number.isFinite(price) ||
       price < 0.25 ||
       price > 5 ||
@@ -418,7 +418,7 @@ function calculate() {
       stock < 0
     ) {
       throw Error(
-        "Prices must be $0.25–$5.00. Quality must be 1–10, and stock must be a whole number of zero or more."
+        "Maximum price is $5.00 per soldier. Prices must be $0.25–$5.00, quality must be 1–10, and stock must be a whole number of zero or more."
       );
     }
 
@@ -433,28 +433,14 @@ function calculate() {
     };
   });
 
-  const positivePrices = offers
-    .map(o => o.price)
-    .filter(p => p >= 0.25 && p <= 5);
-
-  const cheapest = positivePrices.length
-    ? Math.min(...positivePrices)
-    : 0;
+  const cheapest = Math.min(...offers.map(o => o.price));
 
   offers.forEach(o => {
-    let affordability;
-
-    if (o.price < 0.25 || o.price > 5) {
-      affordability = 0;
-    } else if (cheapest === 0) {
-      affordability = 0;
-    } else {
-      affordability = Math.min(100, cheapest / o.price * 100);
-    }
+    const affordability = Math.min(100, cheapest / o.price * 100);
 
     o.score =
-      affordability * (pw / 100) +
-      (o.quality * 10) * (qw / 100);
+      affordability * effectivePriceWeight +
+      (o.quality * 10) * effectiveQualityWeight;
   });
 
   let remaining = target;
@@ -462,14 +448,13 @@ function calculate() {
   while (remaining > 0) {
     const active = offers.filter(o => o.quantity < o.stock);
 
-    if (!active.length) break;
+    if (active.length === 0) break;
 
     let best = null;
     let bestPriority = -Infinity;
 
     active.forEach(o => {
-      const priority =
-        Math.max(o.score, 0.01) ** 2 / (o.quantity + 1);
+      const priority = Math.max(o.score, 0.01) ** 2 / (o.quantity + 1);
 
       if (
         priority > bestPriority + 1e-12 ||
@@ -490,83 +475,78 @@ function calculate() {
   }
 
   offers.forEach(o => {
-    o.row.querySelector(".score").textContent =
-      o.score.toFixed(2);
-
-    o.row.querySelector(".quantity").textContent =
-      o.quantity;
+    o.row.querySelector(".score").textContent = o.score.toFixed(2);
+    o.row.querySelector(".quantity").textContent = o.quantity;
   });
 
-  showMessage(
-    "calculationStatus",
-    "✓ Scores and recommendations updated. " +
-      remaining +
-      " requested units could not be allocated because of available stock."
-  );
+  if (remaining === 0) {
+    showMessage(
+      "calculationStatus",
+      "✓ Scores updated. All " + target + " requested units were allocated."
+    );
+  } else {
+    showMessage(
+      "calculationStatus",
+      "✓ Scores updated. " + (target - remaining) + " of " + target +
+      " units allocated; " + remaining +
+      " could not be allocated because of limited stock."
+    );
+  }
 }
 
-document.getElementById("saveButton").addEventListener(
-  "click",
-  async () => {
-    try {
-      calculate();
-      await saveSharedSettings();
+document.getElementById("saveButton").addEventListener("click", async () => {
+  try {
+    calculate();
+    await saveSharedSettings();
 
-      showMessage(
-        "saveStatus",
-        "✓ Changes saved to the server. Other users will see them when they refresh."
-      );
-    } catch (error) {
-      showMessage("saveStatus", error.message, true);
-    }
+    showMessage(
+      "saveStatus",
+      "✓ Changes saved to the server. Other users will see them when they refresh."
+    );
+  } catch (error) {
+    showMessage("saveStatus", error.message, true);
   }
-);
+});
 
-document.getElementById("calculateButton").addEventListener(
-  "click",
-  () => {
-    try {
-      calculate();
-    } catch (error) {
-      showMessage("calculationStatus", error.message, true);
-    }
+document.getElementById("calculateButton").addEventListener("click", () => {
+  try {
+    calculate();
+  } catch (error) {
+    showMessage("calculationStatus", error.message, true);
   }
-);
+});
 
-document.getElementById("resetButton").addEventListener(
-  "click",
-  async () => {
-    const defaults = {
-      priceWeight: 50,
-      qualityWeight: 50,
-      targetQuantity: 10,
-      offers: [
-        { group: "1", price: 1, quality: 8, stock: 10 },
-        { group: "2", price: 1, quality: 7, stock: 10 },
-        { group: "3", price: 1, quality: 6, stock: 10 },
-        { group: "5", price: 1, quality: 5, stock: 10 }
-      ]
-    };
+document.getElementById("resetButton").addEventListener("click", async () => {
+  const defaults = {
+    priceWeight: 50,
+    qualityWeight: 50,
+    targetQuantity: 10,
+    offers: [
+      { group: "1", price: 2.50, quality: 8, stock: 10 },
+      { group: "2", price: 2.50, quality: 7, stock: 10 },
+      { group: "3", price: 2.50, quality: 6, stock: 10 },
+      { group: "5", price: 2.50, quality: 5, stock: 10 }
+    ]
+  };
 
-    try {
-      applySettings(defaults);
-      calculate();
-      await saveSharedSettings(readSettings());
+  try {
+    applySettings(defaults);
+    calculate();
+    await saveSharedSettings(readSettings());
 
-      showMessage(
-        "saveStatus",
-        "✓ Demo settings reset and saved to the server for everyone."
-      );
-    } catch (error) {
-      showMessage(
-        "saveStatus",
-        "Reset applied on this page, but could not be saved for everyone. " +
-          error.message,
-        true
-      );
-    }
+    showMessage(
+      "saveStatus",
+      "✓ Demo settings reset and saved to the server for everyone."
+    );
+  } catch (error) {
+    showMessage(
+      "saveStatus",
+      "Reset applied on this page, but could not be saved for everyone. " +
+      error.message,
+      true
+    );
   }
-);
+});
 
 loadSharedSettings();
 </script>
